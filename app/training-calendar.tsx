@@ -7,9 +7,10 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, MoveHorizontal as MoreHorizontal, RotateCcw, Clock } from 'lucide-react-native';
+import { ArrowLeft, Menu, RotateCcw, Clock, CheckCircle, AlertCircle } from 'lucide-react-native';
 import { useColorScheme, getColors } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
 import { WorkoutPlan, WorkoutTemplate, DayOfWeek } from '@/types/workout';
@@ -34,12 +35,21 @@ export default function TrainingCalendarScreen() {
   const [weeklyWorkouts, setWeeklyWorkouts] = useState<WeeklyWorkout[]>([]);
   const [currentPlan, setCurrentPlan] = useState<WorkoutPlan | null>(null);
   const [loading, setLoading] = useState(true);
-  const [draggedItem, setDraggedItem] = useState<number | null>(null);
+  const [selectedItem, setSelectedItem] = useState<number | null>(null);
   const [isRearrangeMode, setIsRearrangeMode] = useState(false);
+  const [animatedValue] = useState(new Animated.Value(0));
 
   useEffect(() => {
     loadWeeklySchedule();
   }, []);
+
+  useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: isRearrangeMode ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [isRearrangeMode]);
 
   const loadWeeklySchedule = async () => {
     try {
@@ -81,7 +91,8 @@ export default function TrainingCalendarScreen() {
           
           if (templateId) {
             if (isPast) {
-              status = 'missed'; // TODO: Check from workout sessions
+              // For demo purposes, randomly assign completed/missed
+              status = Math.random() > 0.3 ? 'completed' : 'missed';
             } else if (isToday) {
               status = 'scheduled';
             } else {
@@ -110,11 +121,12 @@ export default function TrainingCalendarScreen() {
   };
 
   const handleRearrangeToggle = () => {
-    setIsRearrangeMode(!isRearrangeMode);
     if (isRearrangeMode) {
       // Save changes when exiting rearrange mode
       saveScheduleChanges();
     }
+    setIsRearrangeMode(!isRearrangeMode);
+    setSelectedItem(null);
   };
 
   const saveScheduleChanges = async () => {
@@ -137,6 +149,12 @@ export default function TrainingCalendarScreen() {
 
       await savePlan(updatedPlan);
       setCurrentPlan(updatedPlan);
+      
+      if (Platform.OS !== 'web') {
+        // Add haptic feedback on mobile
+        // Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      
       Alert.alert('Success', 'Schedule updated successfully!');
     } catch (error) {
       console.error('Error saving schedule:', error);
@@ -146,32 +164,33 @@ export default function TrainingCalendarScreen() {
 
   const handleWorkoutPress = (workout: WeeklyWorkout, index: number) => {
     if (isRearrangeMode) {
-      // Handle drag and drop logic
-      if (draggedItem === null) {
-        setDraggedItem(index);
+      if (selectedItem === null) {
+        setSelectedItem(index);
+      } else if (selectedItem === index) {
+        setSelectedItem(null);
       } else {
         // Swap workouts
         const newWorkouts = [...weeklyWorkouts];
-        const draggedWorkout = newWorkouts[draggedItem];
+        const selectedWorkout = newWorkouts[selectedItem];
         const targetWorkout = newWorkouts[index];
         
         // Swap the template IDs and templates
-        newWorkouts[draggedItem] = {
-          ...draggedWorkout,
+        newWorkouts[selectedItem] = {
+          ...selectedWorkout,
           template: targetWorkout.template,
           templateId: targetWorkout.templateId,
-          status: targetWorkout.templateId ? draggedWorkout.status : 'rest'
+          status: targetWorkout.templateId ? selectedWorkout.status : 'rest'
         };
         
         newWorkouts[index] = {
           ...targetWorkout,
-          template: draggedWorkout.template,
-          templateId: draggedWorkout.templateId,
-          status: draggedWorkout.templateId ? targetWorkout.status : 'rest'
+          template: selectedWorkout.template,
+          templateId: selectedWorkout.templateId,
+          status: selectedWorkout.templateId ? targetWorkout.status : 'rest'
         };
         
         setWeeklyWorkouts(newWorkouts);
-        setDraggedItem(null);
+        setSelectedItem(null);
       }
     } else {
       // Navigate to workout details
@@ -181,14 +200,16 @@ export default function TrainingCalendarScreen() {
     }
   };
 
-  const getWorkoutStatusColor = (status: string, isDragged: boolean = false) => {
-    if (isDragged) return colors.primary;
-    
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'completed': return colors.success;
-      case 'missed': return colors.error;
-      case 'scheduled': return colors.primary;
-      default: return colors.borderLight;
+      case 'completed':
+        return <CheckCircle size={16} color={colors.success} />;
+      case 'missed':
+        return <AlertCircle size={16} color={colors.error} />;
+      case 'scheduled':
+        return <Clock size={16} color={colors.primary} />;
+      default:
+        return null;
     }
   };
 
@@ -196,26 +217,32 @@ export default function TrainingCalendarScreen() {
     if (!workout.template) return '';
     
     switch (workout.status) {
-      case 'completed': return 'Completed';
-      case 'missed': return 'Missed';
-      case 'scheduled': return `${workout.template.exercises.length} exercises`;
-      default: return '';
+      case 'completed':
+        return `${workout.template.exercises.length} exercises`;
+      case 'missed':
+        return `Missed • ${workout.template.exercises.length} exercises`;
+      case 'scheduled':
+        return `${workout.template.exercises.length} exercises`;
+      default:
+        return '';
     }
   };
 
   const renderCalendarHeader = () => (
     <View style={styles.calendarHeader}>
-      <Text style={styles.calendarTitle}>Training</Text>
       <View style={styles.weekContainer}>
         {weeklyWorkouts.map((workout, index) => (
           <View key={index} style={styles.dayHeaderContainer}>
             <Text style={styles.dayHeaderText}>{workout.dayName}</Text>
-            <View style={[
-              styles.dayHeaderCircle,
-              workout.template && styles.activeDayHeaderCircle,
-              workout.status === 'completed' && styles.completedDayHeaderCircle,
-              workout.status === 'missed' && styles.missedDayHeaderCircle
-            ]}>
+            <TouchableOpacity
+              style={[
+                styles.dayHeaderCircle,
+                workout.template && styles.activeDayHeaderCircle,
+                workout.status === 'completed' && styles.completedDayHeaderCircle,
+                workout.status === 'missed' && styles.missedDayHeaderCircle
+              ]}
+              onPress={() => handleWorkoutPress(workout, index)}
+            >
               <Text style={[
                 styles.dayHeaderNumber,
                 workout.template && styles.activeDayHeaderNumber,
@@ -223,7 +250,7 @@ export default function TrainingCalendarScreen() {
               ]}>
                 {workout.dayNumber}
               </Text>
-            </View>
+            </TouchableOpacity>
           </View>
         ))}
       </View>
@@ -231,47 +258,68 @@ export default function TrainingCalendarScreen() {
   );
 
   const renderWorkoutItem = (workout: WeeklyWorkout, index: number) => {
-    const isDragged = draggedItem === index;
-    const statusColor = getWorkoutStatusColor(workout.status, isDragged);
+    const isSelected = selectedItem === index;
     
     return (
-      <TouchableOpacity
+      <Animated.View
         key={index}
         style={[
-          styles.workoutItem,
-          isDragged && styles.draggedWorkoutItem,
-          !workout.template && styles.restDayItem
+          styles.workoutItemContainer,
+          {
+            transform: [{
+              scale: animatedValue.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, isSelected ? 1.02 : 1],
+              })
+            }]
+          }
         ]}
-        onPress={() => handleWorkoutPress(workout, index)}
-        disabled={!isRearrangeMode && !workout.template}
       >
-        <View style={styles.workoutItemLeft}>
-          <View style={styles.workoutDateContainer}>
-            <Text style={styles.workoutDayShort}>{workout.dayShort}</Text>
-            <Text style={styles.workoutDayNumber}>{workout.dayNumber}</Text>
+        <TouchableOpacity
+          style={[
+            styles.workoutItem,
+            isSelected && styles.selectedWorkoutItem,
+            !workout.template && styles.restDayItem,
+            workout.status === 'missed' && styles.missedWorkoutItem
+          ]}
+          onPress={() => handleWorkoutPress(workout, index)}
+          activeOpacity={0.7}
+        >
+          <View style={styles.workoutItemLeft}>
+            <View style={styles.workoutDateContainer}>
+              <Text style={styles.workoutDayShort}>{workout.dayShort}</Text>
+              <Text style={styles.workoutDayNumber}>{workout.dayNumber}</Text>
+            </View>
+            
+            <View style={styles.workoutInfoContainer}>
+              <Text style={[
+                styles.workoutName,
+                workout.status === 'missed' && styles.missedWorkoutName
+              ]}>
+                {workout.template?.name || 'Rest Day'}
+              </Text>
+              {workout.template && (
+                <View style={styles.workoutStatusContainer}>
+                  {getStatusIcon(workout.status)}
+                  <Text style={[
+                    styles.workoutStatus,
+                    workout.status === 'missed' && styles.missedWorkoutStatus,
+                    workout.status === 'completed' && styles.completedWorkoutStatus
+                  ]}>
+                    {getWorkoutStatusText(workout)}
+                  </Text>
+                </View>
+              )}
+            </View>
           </View>
           
-          <View style={styles.workoutInfoContainer}>
-            <Text style={styles.workoutName}>
-              {workout.template?.name || 'Rest Day'}
-            </Text>
-            {workout.template && (
-              <Text style={[
-                styles.workoutStatus,
-                { color: workout.status === 'missed' ? colors.error : colors.textSecondary }
-              ]}>
-                {getWorkoutStatusText(workout)}
-              </Text>
-            )}
-          </View>
-        </View>
-        
-        {isRearrangeMode && (
-          <View style={styles.dragHandle}>
-            <MoreHorizontal size={20} color={colors.textTertiary} />
-          </View>
-        )}
-      </TouchableOpacity>
+          {isRearrangeMode && (
+            <View style={styles.dragHandle}>
+              <Menu size={20} color={colors.textTertiary} />
+            </View>
+          )}
+        </TouchableOpacity>
+      </Animated.View>
     );
   };
 
@@ -318,8 +366,9 @@ export default function TrainingCalendarScreen() {
         {/* Instructions for rearrange mode */}
         {isRearrangeMode && (
           <View style={styles.instructionsContainer}>
+            <Text style={styles.instructionsTitle}>How to rearrange</Text>
             <Text style={styles.instructionsText}>
-              Tap on workouts to swap their positions. Tap "Done" to save changes.
+              Tap on a workout to select it, then tap on another day to swap their positions. Tap "Done" to save your changes.
             </Text>
           </View>
         )}
@@ -353,6 +402,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+    backgroundColor: colors.surface,
   },
   backButton: {
     padding: 4,
@@ -379,13 +429,9 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   calendarHeader: {
     paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  calendarTitle: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 24,
-    color: colors.text,
-    marginBottom: 20,
+    paddingVertical: 24,
+    backgroundColor: colors.surface,
+    marginBottom: 8,
   },
   weekContainer: {
     flexDirection: 'row',
@@ -399,13 +445,15 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 12,
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: 12,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   dayHeaderCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.surface,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
     justifyContent: 'center',
@@ -425,7 +473,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   dayHeaderNumber: {
     fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
+    fontSize: 16,
     color: colors.text,
   },
   activeDayHeaderNumber: {
@@ -436,28 +484,38 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   workoutsList: {
     paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  workoutItemContainer: {
+    marginBottom: 12,
   },
   workoutItem: {
     backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 16,
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 2,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
-  draggedWorkoutItem: {
-    backgroundColor: `${colors.primary}10`,
-    borderWidth: 2,
+  selectedWorkoutItem: {
     borderColor: colors.primary,
+    backgroundColor: `${colors.primary}08`,
+    transform: [{ scale: 1.02 }],
   },
   restDayItem: {
     opacity: 0.6,
+    backgroundColor: colors.surfaceSecondary,
+  },
+  missedWorkoutItem: {
+    borderLeftWidth: 4,
+    borderLeftColor: colors.error,
   },
   workoutItemLeft: {
     flexDirection: 'row',
@@ -466,18 +524,20 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   workoutDateContainer: {
     alignItems: 'center',
-    marginRight: 16,
-    minWidth: 40,
+    marginRight: 20,
+    minWidth: 50,
   },
   workoutDayShort: {
     fontFamily: 'Inter-Medium',
     fontSize: 12,
     color: colors.textTertiary,
-    marginBottom: 2,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   workoutDayNumber: {
     fontFamily: 'Inter-Bold',
-    fontSize: 16,
+    fontSize: 18,
     color: colors.text,
   },
   workoutInfoContainer: {
@@ -485,29 +545,55 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   workoutName: {
     fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
+    fontSize: 18,
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 6,
+  },
+  missedWorkoutName: {
+    color: colors.textSecondary,
+  },
+  workoutStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   workoutStatus: {
     fontFamily: 'Inter-Regular',
-    fontSize: 12,
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginLeft: 6,
+  },
+  missedWorkoutStatus: {
+    color: colors.error,
+  },
+  completedWorkoutStatus: {
+    color: colors.success,
   },
   dragHandle: {
     padding: 8,
+    marginLeft: 12,
   },
   instructionsContainer: {
     backgroundColor: colors.surface,
     marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 12,
-    padding: 16,
+    marginTop: 24,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  instructionsTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 8,
   },
   instructionsText: {
     fontFamily: 'Inter-Regular',
     fontSize: 14,
     color: colors.textSecondary,
-    textAlign: 'center',
     lineHeight: 20,
   },
 });

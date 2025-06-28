@@ -114,14 +114,14 @@ export default function CoachingClientView() {
     }
   };
 
+  const handleTrainingCalendarPress = () => {
+    router.push('/training-calendar');
+  };
+
   const handleDayPress = (workout: WeeklyWorkout) => {
     if (workout.template) {
       router.push(`/training-day/${workout.date}?templateId=${workout.template.id}`);
     }
-  };
-
-  const handleTrainingCalendarPress = () => {
-    router.push('/training-calendar');
   };
 
   const getWorkoutCount = () => {
@@ -133,6 +133,7 @@ export default function CoachingClientView() {
       <TouchableOpacity 
         style={styles.calendarHeader}
         onPress={handleTrainingCalendarPress}
+        activeOpacity={0.7}
       >
         <Text style={styles.calendarTitle}>Training (this week)</Text>
         <ChevronRight size={20} color={colors.textSecondary} />
@@ -150,6 +151,7 @@ export default function CoachingClientView() {
             ]}
             onPress={() => handleDayPress(workout)}
             disabled={!workout.template}
+            activeOpacity={0.7}
           >
             <Text style={[
               styles.dayName,
@@ -381,6 +383,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+    paddingVertical: 4,
   },
   calendarTitle: {
     fontFamily: 'Inter-SemiBold',
