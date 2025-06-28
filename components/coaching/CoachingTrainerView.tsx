@@ -20,7 +20,10 @@ import {
   Search,
   Filter,
   Dumbbell,
-  FileText
+  FileText,
+  ChevronRight,
+  Target,
+  Award
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme, getColors } from '../../hooks/useColorScheme';
@@ -36,6 +39,9 @@ const clients = [
     progress: 85,
     status: 'active',
     avatar: '👩‍💼',
+    nextSession: 'Today 10:00 AM',
+    completedWorkouts: 24,
+    totalWorkouts: 28,
   },
   {
     id: 2,
@@ -44,6 +50,9 @@ const clients = [
     progress: 92,
     status: 'active',
     avatar: '👨‍💻',
+    nextSession: 'Tomorrow 11:30 AM',
+    completedWorkouts: 31,
+    totalWorkouts: 32,
   },
   {
     id: 3,
@@ -52,13 +61,23 @@ const clients = [
     progress: 45,
     status: 'inactive',
     avatar: '👩‍🎨',
+    nextSession: 'Not scheduled',
+    completedWorkouts: 12,
+    totalWorkouts: 28,
   },
 ];
 
 const upcomingSessions = [
-  { id: 1, client: 'Sarah Johnson', time: '10:00 AM', type: 'Strength Training' },
-  { id: 2, client: 'Mike Chen', time: '11:30 AM', type: 'HIIT Session' },
-  { id: 3, client: 'Emma Wilson', time: '2:00 PM', type: 'Personal Training' },
+  { id: 1, client: 'Sarah Johnson', time: '10:00 AM', type: 'Strength Training', status: 'confirmed' },
+  { id: 2, client: 'Mike Chen', time: '11:30 AM', type: 'HIIT Session', status: 'pending' },
+  { id: 3, client: 'Emma Wilson', time: '2:00 PM', type: 'Personal Training', status: 'confirmed' },
+];
+
+const recentActivity = [
+  { id: 1, client: 'John Doe', action: 'Completed Full Body Strength', time: '30 min ago', type: 'workout' },
+  { id: 2, client: 'Lisa Park', action: 'Asked about nutrition plan', time: '1 hour ago', type: 'message' },
+  { id: 3, client: 'Alex Kim', action: 'Updated progress photos', time: '2 hours ago', type: 'progress' },
+  { id: 4, client: 'Sarah Johnson', action: 'Completed HIIT workout', time: '3 hours ago', type: 'workout' },
 ];
 
 export default function CoachingTrainerView() {
@@ -68,6 +87,97 @@ export default function CoachingTrainerView() {
 
   const [selectedTab, setSelectedTab] = useState('clients');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleClientPress = (client: any) => {
+    // Navigate to client detail view
+    router.push(`/client-detail/${client.id}`);
+  };
+
+  const handleCreatePlan = () => {
+    router.push('/create-plan');
+  };
+
+  const handleCreateTemplate = () => {
+    router.push('/create-template');
+  };
+
+  const handleViewTemplates = () => {
+    router.push('/templates');
+  };
+
+  const handleViewPlans = () => {
+    router.push('/workout-plans');
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'workout':
+        return <Dumbbell size={16} color={colors.success} />;
+      case 'message':
+        return <MessageSquare size={16} color={colors.primary} />;
+      case 'progress':
+        return <TrendingUp size={16} color={colors.warning} />;
+      default:
+        return <Activity size={16} color={colors.textSecondary} />;
+    }
+  };
+
+  const renderClientCard = (client: any) => (
+    <TouchableOpacity 
+      key={client.id} 
+      style={styles.clientCard}
+      onPress={() => handleClientPress(client)}
+      activeOpacity={0.7}
+    >
+      <View style={styles.clientHeader}>
+        <View style={styles.clientLeft}>
+          <View style={styles.clientAvatar}>
+            <Text style={styles.clientAvatarText}>{client.avatar}</Text>
+          </View>
+          <View style={styles.clientInfo}>
+            <Text style={styles.clientName}>{client.name}</Text>
+            <Text style={styles.clientLastWorkout}>Last workout: {client.lastWorkout}</Text>
+            <Text style={styles.clientNextSession}>Next: {client.nextSession}</Text>
+          </View>
+        </View>
+        
+        <View style={styles.clientRight}>
+          <View style={[
+            styles.statusBadge,
+            { backgroundColor: client.status === 'active' ? colors.success : colors.warning }
+          ]}>
+            <Text style={styles.statusText}>
+              {client.status === 'active' ? 'Active' : 'Inactive'}
+            </Text>
+          </View>
+          <ChevronRight size={20} color={colors.textTertiary} />
+        </View>
+      </View>
+      
+      <View style={styles.clientProgress}>
+        <View style={styles.progressInfo}>
+          <Text style={styles.progressLabel}>Workout Completion</Text>
+          <Text style={styles.progressText}>
+            {client.completedWorkouts}/{client.totalWorkouts} completed
+          </Text>
+        </View>
+        <View style={styles.progressContainer}>
+          <View style={styles.progressBackground}>
+            <View 
+              style={[
+                styles.progressFill, 
+                { 
+                  width: `${client.progress}%`,
+                  backgroundColor: client.status === 'active' ? colors.success : colors.warning
+                }
+              ]} 
+            />
+          </View>
+          <Text style={styles.progressPercentage}>{client.progress}%</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -100,6 +210,14 @@ export default function CoachingTrainerView() {
             Sessions
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'activity' && styles.activeTab]}
+          onPress={() => setSelectedTab('activity')}
+        >
+          <Text style={[styles.tabText, selectedTab === 'activity' && styles.activeTabText]}>
+            Activity
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -122,13 +240,21 @@ export default function CoachingTrainerView() {
                 <Text style={styles.statNumber}>92%</Text>
                 <Text style={styles.statLabel}>Avg Progress</Text>
               </View>
+              
+              <View style={styles.statCard}>
+                <View style={[styles.statIcon, { backgroundColor: `${colors.warning}15` }]}>
+                  <Calendar size={20} color={colors.warning} />
+                </View>
+                <Text style={styles.statNumber}>8</Text>
+                <Text style={styles.statLabel}>Today's Sessions</Text>
+              </View>
             </View>
 
             {/* Quick Actions */}
             <View style={styles.quickActions}>
               <TouchableOpacity 
                 style={styles.quickActionButton}
-                onPress={() => router.push('/templates')}
+                onPress={handleViewTemplates}
               >
                 <Dumbbell size={20} color={colors.primary} />
                 <Text style={styles.quickActionText}>Templates</Text>
@@ -136,7 +262,7 @@ export default function CoachingTrainerView() {
               
               <TouchableOpacity 
                 style={styles.quickActionButton}
-                onPress={() => router.push('/workout-plans')}
+                onPress={handleViewPlans}
               >
                 <Calendar size={20} color={colors.success} />
                 <Text style={styles.quickActionText}>Plans</Text>
@@ -149,54 +275,21 @@ export default function CoachingTrainerView() {
                 <TrendingUp size={20} color={colors.warning} />
                 <Text style={styles.quickActionText}>Analytics</Text>
               </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.quickActionButton}
+                onPress={() => router.push('/workout-history')}
+              >
+                <Activity size={20} color={colors.error} />
+                <Text style={styles.quickActionText}>History</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Client List */}
             <Text style={styles.sectionTitle}>Your Clients</Text>
-            
-            {clients.map((client) => (
-              <TouchableOpacity key={client.id} style={styles.clientCard}>
-                <View style={styles.clientAvatar}>
-                  <Text style={styles.clientAvatarText}>{client.avatar}</Text>
-                </View>
-                
-                <View style={styles.clientInfo}>
-                  <Text style={styles.clientName}>{client.name}</Text>
-                  <Text style={styles.clientLastWorkout}>Last workout: {client.lastWorkout}</Text>
-                  
-                  <View style={styles.progressContainer}>
-                    <View style={styles.progressBackground}>
-                      <View 
-                        style={[
-                          styles.progressFill, 
-                          { 
-                            width: `${client.progress}%`,
-                            backgroundColor: client.status === 'active' ? colors.success : colors.warning
-                          }
-                        ]} 
-                      />
-                    </View>
-                    <Text style={styles.progressText}>{client.progress}%</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.clientActions}>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <MessageSquare size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                  <View style={[
-                    styles.statusBadge,
-                    { backgroundColor: client.status === 'active' ? colors.success : colors.warning }
-                  ]}>
-                    <Text style={styles.statusText}>
-                      {client.status === 'active' ? 'Active' : 'Inactive'}
-                    </Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+            {clients.map(renderClientCard)}
           </>
-        ) : (
+        ) : selectedTab === 'sessions' ? (
           <>
             {/* Today's Sessions Overview */}
             <LinearGradient
@@ -224,12 +317,70 @@ export default function CoachingTrainerView() {
                 <View style={styles.sessionInfo}>
                   <Text style={styles.sessionClient}>{session.client}</Text>
                   <Text style={styles.sessionType}>{session.type}</Text>
+                  <View style={[
+                    styles.sessionStatusBadge,
+                    { backgroundColor: session.status === 'confirmed' ? colors.success : colors.warning }
+                  ]}>
+                    <Text style={styles.sessionStatusText}>
+                      {session.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+                    </Text>
+                  </View>
                 </View>
                 <TouchableOpacity style={styles.sessionAction}>
                   <MessageSquare size={20} color={colors.primary} />
                 </TouchableOpacity>
               </TouchableOpacity>
             ))}
+
+            {/* Session Actions */}
+            <View style={styles.sessionActions}>
+              <TouchableOpacity style={styles.sessionActionButton}>
+                <Plus size={20} color={colors.primary} />
+                <Text style={styles.sessionActionText}>Schedule Session</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.sessionActionButton}>
+                <Calendar size={20} color={colors.success} />
+                <Text style={styles.sessionActionText}>View Calendar</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Recent Activity */}
+            <Text style={styles.sectionTitle}>Recent Client Activity</Text>
+            
+            {recentActivity.map((activity) => (
+              <View key={activity.id} style={styles.activityItem}>
+                <View style={styles.activityIcon}>
+                  {getActivityIcon(activity.type)}
+                </View>
+                <View style={styles.activityInfo}>
+                  <Text style={styles.activityClient}>{activity.client}</Text>
+                  <Text style={styles.activityAction}>{activity.action}</Text>
+                </View>
+                <Text style={styles.activityTime}>{activity.time}</Text>
+              </View>
+            ))}
+
+            {/* Activity Summary */}
+            <View style={styles.activitySummary}>
+              <Text style={styles.activitySummaryTitle}>Today's Activity Summary</Text>
+              <View style={styles.summaryStats}>
+                <View style={styles.summaryStatItem}>
+                  <Text style={styles.summaryStatNumber}>12</Text>
+                  <Text style={styles.summaryStatLabel}>Workouts Completed</Text>
+                </View>
+                <View style={styles.summaryStatItem}>
+                  <Text style={styles.summaryStatNumber}>8</Text>
+                  <Text style={styles.summaryStatLabel}>Messages Sent</Text>
+                </View>
+                <View style={styles.summaryStatItem}>
+                  <Text style={styles.summaryStatNumber}>3</Text>
+                  <Text style={styles.summaryStatLabel}>Progress Updates</Text>
+                </View>
+              </View>
+            </View>
           </>
         )}
 
@@ -237,7 +388,7 @@ export default function CoachingTrainerView() {
       </ScrollView>
 
       {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity style={styles.fab} onPress={handleCreatePlan}>
         <Plus size={24} color="#FFFFFF" />
       </TouchableOpacity>
     </SafeAreaView>
@@ -306,7 +457,7 @@ const createStyles = (colors: any) => StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 20,
     marginBottom: 16,
-    gap: 16,
+    gap: 12,
   },
   statCard: {
     flex: 1,
@@ -378,13 +529,22 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
     padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 1,
+  },
+  clientHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  clientLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   clientAvatar: {
     width: 48,
@@ -405,13 +565,51 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     fontSize: 16,
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   clientLastWorkout: {
     fontFamily: 'Inter-Regular',
     fontSize: 12,
     color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  clientNextSession: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    color: colors.primary,
+  },
+  clientRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  statusBadge: {
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  statusText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 10,
+    color: '#FFFFFF',
+  },
+  clientProgress: {
+    marginTop: 8,
+  },
+  progressInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  progressLabel: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  progressText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 12,
+    color: colors.text,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -428,33 +626,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     height: '100%',
     borderRadius: 3,
   },
-  progressText: {
+  progressPercentage: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 12,
     color: colors.textSecondary,
     minWidth: 30,
-  },
-  clientActions: {
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.surfaceSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statusBadge: {
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  statusText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 10,
-    color: '#FFFFFF',
   },
   overviewCard: {
     marginHorizontal: 20,
@@ -522,9 +698,127 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     marginTop: 2,
+    marginBottom: 4,
+  },
+  sessionStatusBadge: {
+    alignSelf: 'flex-start',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  sessionStatusText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 10,
+    color: '#FFFFFF',
   },
   sessionAction: {
     padding: 8,
+  },
+  sessionActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    marginTop: 16,
+    gap: 12,
+  },
+  sessionActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  sessionActionText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text,
+    marginLeft: 8,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    marginHorizontal: 20,
+    marginBottom: 8,
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  activityIcon: {
+    width: 32,
+    height: 32,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityInfo: {
+    flex: 1,
+  },
+  activityClient: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text,
+  },
+  activityAction: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  activityTime: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: colors.textTertiary,
+  },
+  activitySummary: {
+    backgroundColor: colors.surface,
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  activitySummaryTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 16,
+  },
+  summaryStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  summaryStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  summaryStatNumber: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 24,
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  summaryStatLabel: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   fab: {
     position: 'absolute',
