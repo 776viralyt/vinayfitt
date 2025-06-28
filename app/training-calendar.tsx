@@ -10,7 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Menu, RotateCcw, Clock, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, Menu, RotateCcw, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { useColorScheme, getColors } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
 import { WorkoutPlan, WorkoutTemplate, DayOfWeek } from '@/types/workout';
