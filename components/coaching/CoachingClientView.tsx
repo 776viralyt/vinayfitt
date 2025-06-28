@@ -120,15 +120,23 @@ export default function CoachingClientView() {
     }
   };
 
+  const handleTrainingCalendarPress = () => {
+    router.push('/training-calendar');
+  };
+
   const getWorkoutCount = () => {
     return weeklyWorkouts.filter(w => w.template !== null).length;
   };
 
   const renderWeeklyCalendar = () => (
     <View style={styles.calendarSection}>
-      <View style={styles.calendarHeader}>
+      <TouchableOpacity 
+        style={styles.calendarHeader}
+        onPress={handleTrainingCalendarPress}
+      >
         <Text style={styles.calendarTitle}>Training (this week)</Text>
-      </View>
+        <ChevronRight size={20} color={colors.textSecondary} />
+      </TouchableOpacity>
       
       <View style={styles.weekContainer}>
         {weeklyWorkouts.map((workout, index) => (
@@ -369,6 +377,9 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 24,
   },
   calendarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 16,
   },
   calendarTitle: {
