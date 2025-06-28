@@ -9,12 +9,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  ArrowLeft, 
-  MoreHorizontal,
-  RotateCcw,
-  Clock
-} from 'lucide-react-native';
+import { ArrowLeft, MoveHorizontal as MoreHorizontal, RotateCcw, Clock } from 'lucide-react-native';
 import { useColorScheme, getColors } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
 import { WorkoutPlan, WorkoutTemplate, DayOfWeek } from '@/types/workout';
