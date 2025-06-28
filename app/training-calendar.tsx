@@ -10,7 +10,7 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Menu, RotateCcw, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
+import { ArrowLeft, Menu, RotateCcw, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Undo2 } from 'lucide-react-native';
 import { useColorScheme, getColors } from '@/hooks/useColorScheme';
 import { router } from 'expo-router';
 import { WorkoutPlan, WorkoutTemplate, DayOfWeek } from '@/types/workout';
@@ -242,6 +242,7 @@ export default function TrainingCalendarScreen() {
                 workout.status === 'missed' && styles.missedDayHeaderCircle
               ]}
               onPress={() => handleWorkoutPress(workout, index)}
+              activeOpacity={0.7}
             >
               <Text style={[
                 styles.dayHeaderNumber,
@@ -349,7 +350,7 @@ export default function TrainingCalendarScreen() {
           {isRearrangeMode ? (
             <Text style={styles.rearrangeButtonText}>Done</Text>
           ) : (
-            <RotateCcw size={20} color={colors.textSecondary} />
+            <Undo2 size={20} color={colors.textSecondary} />
           )}
         </TouchableOpacity>
       </View>

@@ -120,7 +120,7 @@ export default function CoachingClientView() {
 
   const handleDayPress = (workout: WeeklyWorkout) => {
     if (workout.template) {
-      router.push(`/training-day/${workout.date}?templateId=${workout.template.id}`);
+      router.push(`/workout-detail/${workout.template.id}`);
     }
   };
 
