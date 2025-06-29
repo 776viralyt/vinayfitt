@@ -6,6 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  RefreshControl,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -23,7 +27,18 @@ import {
   FileText,
   ChevronRight,
   Target,
-  Award
+  Award,
+  Bell,
+  Phone,
+  Video,
+  Edit,
+  MoreHorizontal,
+  X,
+  CheckCircle,
+  AlertCircle,
+  Zap,
+  Flame,
+  TrendingDown
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme, getColors } from '../../hooks/useColorScheme';
@@ -42,6 +57,11 @@ const clients = [
     nextSession: 'Today 10:00 AM',
     completedWorkouts: 24,
     totalWorkouts: 28,
+    streak: 7,
+    goals: ['Weight Loss', 'Strength'],
+    compliance: 92,
+    location: 'Gym A',
+    phone: '+1 234 567 8901'
   },
   {
     id: 2,
@@ -53,6 +73,11 @@ const clients = [
     nextSession: 'Tomorrow 11:30 AM',
     completedWorkouts: 31,
     totalWorkouts: 32,
+    streak: 12,
+    goals: ['Muscle Gain', 'Endurance'],
+    compliance: 97,
+    location: 'Home',
+    phone: '+1 234 567 8902'
   },
   {
     id: 3,
@@ -64,20 +89,87 @@ const clients = [
     nextSession: 'Not scheduled',
     completedWorkouts: 12,
     totalWorkouts: 28,
+    streak: 0,
+    goals: ['Flexibility', 'Wellness'],
+    compliance: 45,
+    location: 'Gym B',
+    phone: '+1 234 567 8903'
   },
+  {
+    id: 4,
+    name: 'Alex Rodriguez',
+    lastWorkout: 'Yesterday',
+    progress: 78,
+    status: 'active',
+    avatar: '👨‍🎯',
+    nextSession: 'Today 3:00 PM',
+    completedWorkouts: 18,
+    totalWorkouts: 22,
+    streak: 5,
+    goals: ['Athletic Performance'],
+    compliance: 82,
+    location: 'Gym A',
+    phone: '+1 234 567 8904'
+  }
 ];
 
 const upcomingSessions = [
-  { id: 1, client: 'Sarah Johnson', time: '10:00 AM', type: 'Strength Training', status: 'confirmed' },
-  { id: 2, client: 'Mike Chen', time: '11:30 AM', type: 'HIIT Session', status: 'pending' },
-  { id: 3, client: 'Emma Wilson', time: '2:00 PM', type: 'Personal Training', status: 'confirmed' },
+  { 
+    id: 1, 
+    client: 'Sarah Johnson', 
+    time: '10:00 AM', 
+    type: 'Strength Training', 
+    status: 'confirmed',
+    duration: '60 min',
+    location: 'Gym A',
+    notes: 'Focus on upper body'
+  },
+  { 
+    id: 2, 
+    client: 'Mike Chen', 
+    time: '11:30 AM', 
+    type: 'HIIT Session', 
+    status: 'pending',
+    duration: '45 min',
+    location: 'Home',
+    notes: 'Virtual session'
+  },
+  { 
+    id: 3, 
+    client: 'Emma Wilson', 
+    time: '2:00 PM', 
+    type: 'Personal Training', 
+    status: 'confirmed',
+    duration: '90 min',
+    location: 'Gym B',
+    notes: 'Assessment session'
+  },
+  { 
+    id: 4, 
+    client: 'Alex Rodriguez', 
+    time: '3:00 PM', 
+    type: 'Athletic Training', 
+    status: 'confirmed',
+    duration: '75 min',
+    location: 'Gym A',
+    notes: 'Sport-specific drills'
+  }
 ];
 
 const recentActivity = [
-  { id: 1, client: 'John Doe', action: 'Completed Full Body Strength', time: '30 min ago', type: 'workout' },
-  { id: 2, client: 'Lisa Park', action: 'Asked about nutrition plan', time: '1 hour ago', type: 'message' },
-  { id: 3, client: 'Alex Kim', action: 'Updated progress photos', time: '2 hours ago', type: 'progress' },
-  { id: 4, client: 'Sarah Johnson', action: 'Completed HIIT workout', time: '3 hours ago', type: 'workout' },
+  { id: 1, client: 'John Doe', action: 'Completed Full Body Strength', time: '30 min ago', type: 'workout', avatar: '👨‍💼' },
+  { id: 2, client: 'Lisa Park', action: 'Asked about nutrition plan', time: '1 hour ago', type: 'message', avatar: '👩‍🔬' },
+  { id: 3, client: 'Alex Kim', action: 'Updated progress photos', time: '2 hours ago', type: 'progress', avatar: '👨‍🎨' },
+  { id: 4, client: 'Sarah Johnson', action: 'Completed HIIT workout', time: '3 hours ago', type: 'workout', avatar: '👩‍💼' },
+  { id: 5, client: 'Tom Wilson', action: 'Logged nutrition data', time: '4 hours ago', type: 'nutrition', avatar: '👨‍🍳' },
+  { id: 6, client: 'Maria Garcia', action: 'Missed scheduled session', time: '5 hours ago', type: 'missed', avatar: '👩‍🎭' }
+];
+
+const notifications = [
+  { id: 1, type: 'session', message: 'Sarah Johnson confirmed today\'s session', time: '10 min ago', read: false },
+  { id: 2, type: 'achievement', message: 'Mike Chen reached 12-day streak!', time: '1 hour ago', read: false },
+  { id: 3, type: 'alert', message: 'Emma Wilson hasn\'t worked out in 7 days', time: '2 hours ago', read: true },
+  { id: 4, type: 'message', message: 'New message from Alex Rodriguez', time: '3 hours ago', read: false }
 ];
 
 export default function CoachingTrainerView() {
@@ -87,9 +179,16 @@ export default function CoachingTrainerView() {
 
   const [selectedTab, setSelectedTab] = useState('clients');
   const [searchQuery, setSearchQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [showQuickActions, setShowQuickActions] = useState(false);
+
+  const filters = ['all', 'active', 'inactive', 'high-progress'];
+  const unreadNotifications = notifications.filter(n => !n.read).length;
 
   const handleClientPress = (client: any) => {
-    // Navigate to client detail view
     router.push(`/client-detail/${client.id}`);
   };
 
@@ -109,6 +208,24 @@ export default function CoachingTrainerView() {
     router.push('/workout-plans');
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Simulate API call
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  const handleCallClient = (client: any) => {
+    Alert.alert('Call Client', `Calling ${client.name}...`);
+  };
+
+  const handleVideoCall = (client: any) => {
+    Alert.alert('Video Call', `Starting video call with ${client.name}...`);
+  };
+
+  const handleMessageClient = (client: any) => {
+    router.push(`/chat/${client.id}`);
+  };
+
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'workout':
@@ -117,10 +234,38 @@ export default function CoachingTrainerView() {
         return <MessageSquare size={16} color={colors.primary} />;
       case 'progress':
         return <TrendingUp size={16} color={colors.warning} />;
+      case 'nutrition':
+        return <Target size={16} color={colors.info} />;
+      case 'missed':
+        return <AlertCircle size={16} color={colors.error} />;
       default:
         return <Activity size={16} color={colors.textSecondary} />;
     }
   };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'session':
+        return <Calendar size={16} color={colors.primary} />;
+      case 'achievement':
+        return <Award size={16} color={colors.warning} />;
+      case 'alert':
+        return <AlertCircle size={16} color={colors.error} />;
+      case 'message':
+        return <MessageSquare size={16} color={colors.info} />;
+      default:
+        return <Bell size={16} color={colors.textSecondary} />;
+    }
+  };
+
+  const filteredClients = clients.filter(client => {
+    const matchesSearch = client.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = selectedFilter === 'all' || 
+      (selectedFilter === 'active' && client.status === 'active') ||
+      (selectedFilter === 'inactive' && client.status === 'inactive') ||
+      (selectedFilter === 'high-progress' && client.progress >= 80);
+    return matchesSearch && matchesFilter;
+  });
 
   const renderClientCard = (client: any) => (
     <TouchableOpacity 
@@ -131,17 +276,50 @@ export default function CoachingTrainerView() {
     >
       <View style={styles.clientHeader}>
         <View style={styles.clientLeft}>
-          <View style={styles.clientAvatar}>
-            <Text style={styles.clientAvatarText}>{client.avatar}</Text>
+          <View style={styles.clientAvatarContainer}>
+            <Text style={styles.clientAvatar}>{client.avatar}</Text>
+            {client.streak > 0 && (
+              <View style={styles.streakBadge}>
+                <Flame size={12} color="#FFFFFF" />
+                <Text style={styles.streakText}>{client.streak}</Text>
+              </View>
+            )}
           </View>
           <View style={styles.clientInfo}>
             <Text style={styles.clientName}>{client.name}</Text>
             <Text style={styles.clientLastWorkout}>Last workout: {client.lastWorkout}</Text>
             <Text style={styles.clientNextSession}>Next: {client.nextSession}</Text>
+            <View style={styles.clientGoals}>
+              {client.goals.map((goal, index) => (
+                <View key={index} style={styles.goalTag}>
+                  <Text style={styles.goalText}>{goal}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         </View>
         
         <View style={styles.clientRight}>
+          <View style={styles.clientActions}>
+            <TouchableOpacity 
+              style={styles.actionBtn}
+              onPress={() => handleMessageClient(client)}
+            >
+              <MessageSquare size={16} color={colors.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionBtn}
+              onPress={() => handleCallClient(client)}
+            >
+              <Phone size={16} color={colors.success} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.actionBtn}
+              onPress={() => handleVideoCall(client)}
+            >
+              <Video size={16} color={colors.warning} />
+            </TouchableOpacity>
+          </View>
           <View style={[
             styles.statusBadge,
             { backgroundColor: client.status === 'active' ? colors.success : colors.warning }
@@ -175,6 +353,55 @@ export default function CoachingTrainerView() {
           </View>
           <Text style={styles.progressPercentage}>{client.progress}%</Text>
         </View>
+        <Text style={styles.complianceText}>
+          Compliance: {client.compliance}%
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  const renderSessionCard = (session: any) => (
+    <TouchableOpacity key={session.id} style={styles.sessionCard}>
+      <View style={styles.sessionHeader}>
+        <View style={styles.sessionTime}>
+          <Clock size={16} color={colors.textSecondary} />
+          <Text style={styles.sessionTimeText}>{session.time}</Text>
+        </View>
+        <View style={[
+          styles.sessionStatusBadge,
+          { backgroundColor: session.status === 'confirmed' ? colors.success : colors.warning }
+        ]}>
+          <Text style={styles.sessionStatusText}>
+            {session.status === 'confirmed' ? 'Confirmed' : 'Pending'}
+          </Text>
+        </View>
+      </View>
+      
+      <View style={styles.sessionInfo}>
+        <Text style={styles.sessionClient}>{session.client}</Text>
+        <Text style={styles.sessionType}>{session.type}</Text>
+        <View style={styles.sessionDetails}>
+          <Text style={styles.sessionDetail}>📍 {session.location}</Text>
+          <Text style={styles.sessionDetail}>⏱️ {session.duration}</Text>
+        </View>
+        {session.notes && (
+          <Text style={styles.sessionNotes}>Notes: {session.notes}</Text>
+        )}
+      </View>
+      
+      <View style={styles.sessionActions}>
+        <TouchableOpacity style={styles.sessionActionBtn}>
+          <Phone size={16} color={colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sessionActionBtn}>
+          <Video size={16} color={colors.success} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sessionActionBtn}>
+          <MessageSquare size={16} color={colors.warning} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.sessionActionBtn}>
+          <Edit size={16} color={colors.textSecondary} />
+        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -184,10 +411,24 @@ export default function CoachingTrainerView() {
       <View style={styles.header}>
         <Text style={styles.title}>Client Management</Text>
         <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => setShowNotifications(true)}
+          >
+            <Bell size={20} color={colors.textSecondary} />
+            {unreadNotifications > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>{unreadNotifications}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton}>
             <Search size={20} color={colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerButton}>
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => setShowFilters(true)}
+          >
             <Filter size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
@@ -220,7 +461,13 @@ export default function CoachingTrainerView() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         {selectedTab === 'clients' ? (
           <>
             {/* Quick Stats */}
@@ -248,6 +495,18 @@ export default function CoachingTrainerView() {
                 <Text style={styles.statNumber}>8</Text>
                 <Text style={styles.statLabel}>Today's Sessions</Text>
               </View>
+            </View>
+
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+              <Search size={20} color={colors.textTertiary} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search clients..."
+                placeholderTextColor={colors.textTertiary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
             </View>
 
             {/* Quick Actions */}
@@ -286,8 +545,8 @@ export default function CoachingTrainerView() {
             </View>
 
             {/* Client List */}
-            <Text style={styles.sectionTitle}>Your Clients</Text>
-            {clients.map(renderClientCard)}
+            <Text style={styles.sectionTitle}>Your Clients ({filteredClients.length})</Text>
+            {filteredClients.map(renderClientCard)}
           </>
         ) : selectedTab === 'sessions' ? (
           <>
@@ -307,33 +566,10 @@ export default function CoachingTrainerView() {
 
             {/* Upcoming Sessions */}
             <Text style={styles.sectionTitle}>Upcoming Sessions</Text>
-            
-            {upcomingSessions.map((session) => (
-              <TouchableOpacity key={session.id} style={styles.sessionCard}>
-                <View style={styles.sessionTime}>
-                  <Clock size={16} color={colors.textSecondary} />
-                  <Text style={styles.sessionTimeText}>{session.time}</Text>
-                </View>
-                <View style={styles.sessionInfo}>
-                  <Text style={styles.sessionClient}>{session.client}</Text>
-                  <Text style={styles.sessionType}>{session.type}</Text>
-                  <View style={[
-                    styles.sessionStatusBadge,
-                    { backgroundColor: session.status === 'confirmed' ? colors.success : colors.warning }
-                  ]}>
-                    <Text style={styles.sessionStatusText}>
-                      {session.status === 'confirmed' ? 'Confirmed' : 'Pending'}
-                    </Text>
-                  </View>
-                </View>
-                <TouchableOpacity style={styles.sessionAction}>
-                  <MessageSquare size={20} color={colors.primary} />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
+            {upcomingSessions.map(renderSessionCard)}
 
             {/* Session Actions */}
-            <View style={styles.sessionActions}>
+            <View style={styles.sessionActionsContainer}>
               <TouchableOpacity style={styles.sessionActionButton}>
                 <Plus size={20} color={colors.primary} />
                 <Text style={styles.sessionActionText}>Schedule Session</Text>
@@ -352,8 +588,11 @@ export default function CoachingTrainerView() {
             
             {recentActivity.map((activity) => (
               <View key={activity.id} style={styles.activityItem}>
-                <View style={styles.activityIcon}>
-                  {getActivityIcon(activity.type)}
+                <View style={styles.activityLeft}>
+                  <Text style={styles.activityAvatar}>{activity.avatar}</Text>
+                  <View style={styles.activityIconBadge}>
+                    {getActivityIcon(activity.type)}
+                  </View>
                 </View>
                 <View style={styles.activityInfo}>
                   <Text style={styles.activityClient}>{activity.client}</Text>
@@ -391,6 +630,84 @@ export default function CoachingTrainerView() {
       <TouchableOpacity style={styles.fab} onPress={handleCreatePlan}>
         <Plus size={24} color="#FFFFFF" />
       </TouchableOpacity>
+
+      {/* Notifications Modal */}
+      <Modal
+        visible={showNotifications}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowNotifications(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Notifications</Text>
+            <TouchableOpacity onPress={() => setShowNotifications(false)}>
+              <X size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.notificationsList}>
+            {notifications.map((notification) => (
+              <View key={notification.id} style={[
+                styles.notificationItem,
+                !notification.read && styles.unreadNotification
+              ]}>
+                <View style={styles.notificationIcon}>
+                  {getNotificationIcon(notification.type)}
+                </View>
+                <View style={styles.notificationContent}>
+                  <Text style={styles.notificationMessage}>{notification.message}</Text>
+                  <Text style={styles.notificationTime}>{notification.time}</Text>
+                </View>
+                {!notification.read && <View style={styles.unreadDot} />}
+              </View>
+            ))}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Filters Modal */}
+      <Modal
+        visible={showFilters}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Filter Clients</Text>
+            <TouchableOpacity onPress={() => setShowFilters(false)}>
+              <X size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.filterOptions}>
+            {filters.map((filter) => (
+              <TouchableOpacity
+                key={filter}
+                style={[
+                  styles.filterOption,
+                  selectedFilter === filter && styles.selectedFilter
+                ]}
+                onPress={() => {
+                  setSelectedFilter(filter);
+                  setShowFilters(false);
+                }}
+              >
+                <Text style={[
+                  styles.filterText,
+                  selectedFilter === filter && styles.selectedFilterText
+                ]}>
+                  {filter.charAt(0).toUpperCase() + filter.slice(1).replace('-', ' ')}
+                </Text>
+                {selectedFilter === filter && (
+                  <CheckCircle size={20} color="#FFFFFF" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -424,6 +741,23 @@ const createStyles = (colors: any) => StyleSheet.create({
     backgroundColor: colors.surfaceSecondary,
     justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: colors.error,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 10,
+    color: '#FFFFFF',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -491,6 +825,25 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 12,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: colors.text,
+  },
   quickActions: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -546,17 +899,33 @@ const createStyles = (colors: any) => StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  clientAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.surfaceSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
+  clientAvatarContainer: {
+    position: 'relative',
     marginRight: 16,
   },
-  clientAvatarText: {
-    fontSize: 20,
+  clientAvatar: {
+    fontSize: 32,
+    width: 48,
+    height: 48,
+    textAlign: 'center',
+    lineHeight: 48,
+  },
+  streakBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: colors.warning,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  streakText: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 10,
+    color: '#FFFFFF',
+    marginLeft: 2,
   },
   clientInfo: {
     flex: 1,
@@ -577,10 +946,39 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 12,
     color: colors.primary,
+    marginBottom: 6,
+  },
+  clientGoals: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  goalTag: {
+    backgroundColor: colors.primary + '20',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  goalText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 10,
+    color: colors.primary,
   },
   clientRight: {
     alignItems: 'flex-end',
     gap: 8,
+  },
+  clientActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.surfaceSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statusBadge: {
     borderRadius: 12,
@@ -614,6 +1012,7 @@ const createStyles = (colors: any) => StyleSheet.create({
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 4,
   },
   progressBackground: {
     flex: 1,
@@ -631,6 +1030,11 @@ const createStyles = (colors: any) => StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     minWidth: 30,
+  },
+  complianceText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 11,
+    color: colors.textTertiary,
   },
   overviewCard: {
     marginHorizontal: 20,
@@ -665,56 +1069,82 @@ const createStyles = (colors: any) => StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
     padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
     shadowColor: colors.shadow,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 1,
     shadowRadius: 4,
     elevation: 1,
   },
+  sessionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sessionTime: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 80,
   },
   sessionTimeText: {
     fontFamily: 'Inter-Medium',
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textSecondary,
     marginLeft: 4,
   },
-  sessionInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  sessionClient: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 14,
-    color: colors.text,
-  },
-  sessionType: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: 2,
-    marginBottom: 4,
-  },
   sessionStatusBadge: {
-    alignSelf: 'flex-start',
     borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   sessionStatusText: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 10,
     color: '#FFFFFF',
   },
-  sessionAction: {
-    padding: 8,
+  sessionInfo: {
+    marginBottom: 12,
+  },
+  sessionClient: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  sessionType: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  sessionDetails: {
+    flexDirection: 'row',
+    gap: 16,
+    marginBottom: 4,
+  },
+  sessionDetail: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: colors.textTertiary,
+  },
+  sessionNotes: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   sessionActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  sessionActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surfaceSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sessionActionsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     marginTop: 16,
@@ -754,14 +1184,29 @@ const createStyles = (colors: any) => StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  activityIcon: {
-    width: 32,
-    height: 32,
-    backgroundColor: colors.surfaceSecondary,
-    borderRadius: 16,
+  activityLeft: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  activityAvatar: {
+    fontSize: 24,
+    width: 40,
+    height: 40,
+    textAlign: 'center',
+    lineHeight: 40,
+  },
+  activityIconBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 20,
+    height: 20,
+    backgroundColor: colors.surface,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    borderWidth: 2,
+    borderColor: colors.background,
   },
   activityInfo: {
     flex: 1,
@@ -835,5 +1280,92 @@ const createStyles = (colors: any) => StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 8,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  modalTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 20,
+    color: colors.text,
+  },
+  notificationsList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 4,
+  },
+  unreadNotification: {
+    backgroundColor: colors.primary + '10',
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+  },
+  notificationIcon: {
+    width: 32,
+    height: 32,
+    backgroundColor: colors.surfaceSecondary,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationMessage: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: 2,
+  },
+  notificationTime: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+  },
+  filterOptions: {
+    padding: 20,
+  },
+  filterOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+  },
+  selectedFilter: {
+    backgroundColor: colors.primary,
+  },
+  filterText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: colors.text,
+  },
+  selectedFilterText: {
+    color: '#FFFFFF',
   },
 });
