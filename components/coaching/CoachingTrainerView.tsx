@@ -12,34 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
-  Users, 
-  Calendar, 
-  TrendingUp,
-  Clock,
-  MessageSquare,
-  Plus,
-  Star,
-  Activity,
-  Search,
-  Filter,
-  Dumbbell,
-  FileText,
-  ChevronRight,
-  Target,
-  Award,
-  Bell,
-  Phone,
-  Video,
-  Edit,
-  MoreHorizontal,
-  X,
-  CheckCircle,
-  AlertCircle,
-  Zap,
-  Flame,
-  TrendingDown
-} from 'lucide-react-native';
+import { Users, Calendar, TrendingUp, Clock, MessageSquare, Plus, Star, Activity, Search, Filter, Dumbbell, FileText, ChevronRight, Target, Award, Bell, Phone, Video, CreditCard as Edit, MoveHorizontal as MoreHorizontal, X, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Zap, Flame, TrendingDown } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme, getColors } from '../../hooks/useColorScheme';
 import { router } from 'expo-router';
