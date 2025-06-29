@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -17,7 +18,9 @@ import {
   Calendar,
   X,
   Play,
-  Dumbbell
+  Dumbbell,
+  Clock,
+  ChevronRight
 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme, getColors } from '../../hooks/useColorScheme';
@@ -99,12 +102,31 @@ export default function TodayClientView() {
     }
   };
 
+  const handleWorkoutCardPress = () => {
+    if (todaysWorkout) {
+      router.push(`/workout-detail/${todaysWorkout.id}`);
+    }
+  };
+
   const handleSetMacrosGoal = () => {
     router.push('/set-macros-goal');
   };
 
   const handleAddMeal = () => {
     router.push('/food-journal');
+  };
+
+  const getExerciseImage = (exerciseName: string, index: number): string => {
+    // Use different Pexels images for different exercises
+    const images = [
+      'https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=400',
+      'https://images.pexels.com/photos/1552106/pexels-photo-1552106.jpeg?auto=compress&cs=tinysrgb&w=400',
+      'https://images.pexels.com/photos/416778/pexels-photo-416778.jpeg?auto=compress&cs=tinysrgb&w=400',
+      'https://images.pexels.com/photos/3822356/pexels-photo-3822356.jpeg?auto=compress&cs=tinysrgb&w=400',
+      'https://images.pexels.com/photos/1431282/pexels-photo-1431282.jpeg?auto=compress&cs=tinysrgb&w=400',
+      'https://images.pexels.com/photos/1229356/pexels-photo-1229356.jpeg?auto=compress&cs=tinysrgb&w=400',
+    ];
+    return images[index % images.length];
   };
 
   const renderTodaysWorkout = () => {
@@ -127,25 +149,92 @@ export default function TodayClientView() {
     }
 
     return (
-      <LinearGradient
-        colors={colorScheme === 'dark' ? ['#BE185D', '#BE123C'] : ['#F093FB', '#F5576C']}
-        style={styles.workoutCard}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <TouchableOpacity 
+        style={styles.workoutCardContainer}
+        onPress={handleWorkoutCardPress}
+        activeOpacity={0.9}
       >
-        <View style={styles.workoutContent}>
-          <View style={styles.workoutInfo}>
-            <Text style={styles.workoutLabel}>TODAY'S WORKOUT</Text>
-            <Text style={styles.workoutName}>{todaysWorkout.name}</Text>
-            <Text style={styles.workoutDetails}>
-              {todaysWorkout.exercises.length} exercises • {todaysWorkout.duration} min
-            </Text>
+        <LinearGradient
+          colors={colorScheme === 'dark' ? ['#BE185D', '#BE123C'] : ['#F093FB', '#F5576C']}
+          style={styles.workoutCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          {/* Hero Image */}
+          <View style={styles.workoutHeroContainer}>
+            <Image 
+              source={{ uri: 'https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg?auto=compress&cs=tinysrgb&w=800' }}
+              style={styles.workoutHeroImage}
+            />
+            <View style={styles.workoutOverlay}>
+              <View style={styles.workoutInfo}>
+                <Text style={styles.workoutLabel}>TODAY'S WORKOUT</Text>
+                <Text style={styles.workoutName}>{todaysWorkout.name}</Text>
+                <View style={styles.workoutMeta}>
+                  <View style={styles.metaItem}>
+                    <Dumbbell size={16} color="rgba(255, 255, 255, 0.8)" />
+                    <Text style={styles.metaText}>{todaysWorkout.exercises.length} exercises</Text>
+                  </View>
+                  <View style={styles.metaItem}>
+                    <Clock size={16} color="rgba(255, 255, 255, 0.8)" />
+                    <Text style={styles.metaText}>{todaysWorkout.duration} min</Text>
+                  </View>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.playButton} onPress={handleStartWorkout}>
+                <Play size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
-          <TouchableOpacity style={styles.playButton} onPress={handleStartWorkout}>
-            <Play size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
+
+          {/* Exercise Preview */}
+          <View style={styles.exercisePreview}>
+            <Text style={styles.exercisePreviewTitle}>Exercises Preview</Text>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.exerciseScrollView}
+              contentContainerStyle={styles.exerciseScrollContent}
+            >
+              {todaysWorkout.exercises.slice(0, 5).map((exercise, index) => (
+                <View key={exercise.id} style={styles.exercisePreviewItem}>
+                  <Image 
+                    source={{ uri: getExerciseImage(exercise.exercise.name, index) }}
+                    style={styles.exercisePreviewImage}
+                  />
+                  <Text style={styles.exercisePreviewName} numberOfLines={2}>
+                    {exercise.exercise.name}
+                  </Text>
+                  <Text style={styles.exercisePreviewSets}>
+                    {exercise.sets.length} sets
+                  </Text>
+                </View>
+              ))}
+              {todaysWorkout.exercises.length > 5 && (
+                <View style={styles.moreExercisesItem}>
+                  <View style={styles.moreExercisesCircle}>
+                    <Text style={styles.moreExercisesText}>
+                      +{todaysWorkout.exercises.length - 5}
+                    </Text>
+                  </View>
+                  <Text style={styles.moreExercisesLabel}>More</Text>
+                </View>
+              )}
+            </ScrollView>
+            
+            <View style={styles.workoutActions}>
+              <TouchableOpacity style={styles.viewDetailsButton} onPress={handleWorkoutCardPress}>
+                <Text style={styles.viewDetailsText}>View Details</Text>
+                <ChevronRight size={16} color="rgba(255, 255, 255, 0.8)" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.startWorkoutButton} onPress={handleStartWorkout}>
+                <Play size={16} color="#FFFFFF" />
+                <Text style={styles.startWorkoutText}>Start Workout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
     );
   };
 
@@ -348,16 +437,34 @@ const createStyles = (colors: any) => StyleSheet.create({
     color: '#FFFFFF',
     lineHeight: 24,
   },
-  workoutCard: {
+  workoutCardContainer: {
     marginHorizontal: 20,
     marginBottom: 16,
-    borderRadius: 16,
-    padding: 24,
   },
-  workoutContent: {
-    flexDirection: 'row',
+  workoutCard: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  workoutHeroContainer: {
+    height: 200,
+    position: 'relative',
+  },
+  workoutHeroImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  workoutOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    padding: 20,
     justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
   },
   workoutInfo: {
     flex: 1,
@@ -371,11 +478,20 @@ const createStyles = (colors: any) => StyleSheet.create({
   },
   workoutName: {
     fontFamily: 'Inter-Bold',
-    fontSize: 20,
+    fontSize: 24,
     color: '#FFFFFF',
-    marginBottom: 4,
+    marginBottom: 12,
   },
-  workoutDetails: {
+  workoutMeta: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  metaText: {
     fontFamily: 'Inter-Medium',
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.8)',
@@ -387,6 +503,106 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  exercisePreview: {
+    padding: 20,
+  },
+  exercisePreviewTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: 16,
+  },
+  exerciseScrollView: {
+    marginBottom: 20,
+  },
+  exerciseScrollContent: {
+    paddingRight: 20,
+  },
+  exercisePreviewItem: {
+    width: 80,
+    marginRight: 12,
+    alignItems: 'center',
+  },
+  exercisePreviewImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  exercisePreviewName: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+    marginBottom: 4,
+    lineHeight: 12,
+  },
+  exercisePreviewSets: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 9,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+  },
+  moreExercisesItem: {
+    width: 80,
+    alignItems: 'center',
+  },
+  moreExercisesCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  moreExercisesText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: '#FFFFFF',
+  },
+  moreExercisesLabel: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.8)',
+    textAlign: 'center',
+  },
+  workoutActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  viewDetailsButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  viewDetailsText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginRight: 4,
+  },
+  startWorkoutButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  startWorkoutText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: colors.text,
+    marginLeft: 6,
   },
   alertCard: {
     backgroundColor: colors.surface,
