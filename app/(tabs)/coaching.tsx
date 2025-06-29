@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 // Import role-specific views
 import CoachingClientView from '@/components/coaching/CoachingClientView';
 import CoachingTrainerView from '@/components/coaching/CoachingTrainerView';
+import CoachingNutritionistView from '@/components/coaching/CoachingNutritionistView';
 
 export default function CoachingScreen() {
   const { userRole } = useUserRole();
@@ -35,11 +36,11 @@ export default function CoachingScreen() {
     case 'trainer':
       return <CoachingTrainerView />;
     case 'nutritionist':
-      return <CoachingClientView />; // TODO: Create NutritionistCoachingView
+      return <CoachingNutritionistView />;
     case 'admin':
-      return <CoachingClientView />; // TODO: Create AdminCoachingView
+      return <CoachingTrainerView />; // Admin uses trainer view for management
     case 'hr':
-      return <CoachingClientView />; // TODO: Create HRCoachingView
+      return <CoachingTrainerView />; // HR uses trainer view for staff management
     default:
       return <CoachingClientView />;
   }
